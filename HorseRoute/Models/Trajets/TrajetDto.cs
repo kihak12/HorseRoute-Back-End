@@ -14,6 +14,5 @@ namespace HorseRoute.Models.Trajets
         public int AvailableSits { get; set; }
         public DateTime TrajetDate { get; set; }
         public int DayFlexibility { get; set; }
-        public string CheckPoints { get; set; }
     }
 }

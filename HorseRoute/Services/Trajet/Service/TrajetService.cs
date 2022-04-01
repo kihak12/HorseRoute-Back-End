@@ -41,119 +41,54 @@ namespace HorseRoute.Services.Service
             var trajetsFetchFromRepo = await _trajetRepository.SearchTrajets(1,1);
             var LocationStart = Locations.ToList().First().Split("&!&");
             var LocationEnd = Locations.ToList().Last().Split("&!&");
+
+
             Console.WriteLine("Départ :" + LocationStart[0]);
             Console.WriteLine("Arriver :" + LocationEnd[1]);
 
-            Locations.ToList().ForEach(_ =>
+            Trajet[] matchingTrajet = new Trajet[] { };
+
+            trajetsFetchFromRepo.ToList().ForEach(trajetFromRepo =>
             {
-                var l = _.Split("&!&").ToList();
-                var Longitude = Double.Parse(l[0]);
-                var Latitude = Double.Parse(l[1]);
+                var haveStart = false;
+                var haveEnd = false;
 
-                var LatitudeM = Latitude - ((10 - 0.2) / 111.045);
-                var LatitudeP = Latitude + ((10 - 0.2) / 111.045);
-
-                var LongitudeM = Longitude - (1 / (111.045 * Math.Cos(Latitude * (Math.PI) / 180)));
-                var LongitudeP = Longitude + (1 / (111.045 * Math.Cos(Latitude * (Math.PI) / 180)));
-
-                /*
-                Console.WriteLine("");
-                Console.WriteLine("Base :");
-                Console.WriteLine(Longitude);
-                Console.WriteLine(Latitude);
-
-                Console.WriteLine("Latitude :");
-                Console.WriteLine(LatitudeM);
-                Console.WriteLine(LatitudeP);
-
-                Console.WriteLine("Longitude :");
-                Console.WriteLine(LongitudeM);
-                Console.WriteLine(LongitudeP);
-                */
-
-                trajetsFetchFromRepo.ToList().ForEach(trajetFromRepo =>
+                trajetFromRepo.CheckPoints.Split(",").ToList().ForEach(trajetPoints =>
                 {
-                    trajetFromRepo.CheckPoints.Split(",").ToList().ForEach(TrajetPoints =>
+                    var lng = Double.Parse(trajetPoints.Split("&!&")[0]);
+                    var lat = Double.Parse(trajetPoints.Split("&!&")[1]);
+
+                    var LatitudeStart = Double.Parse(LocationStart[1]);
+                    var LongitudeStart = Double.Parse(LocationStart[0]);
+                    var LatitudeEnd = Double.Parse(LocationEnd[1]);
+                    var LongitudeEnd = Double.Parse(LocationEnd[0]);
+
+                    var latP = lat + ((20 - 0.2) / 111.045);
+                    var latM = lat - ((20 - 0.2) / 111.045);
+                    var lngP = lng + ((20 - 0.2) / (111.045 * Math.Cos(lat * (Math.PI) / 180)));
+                    var lngM = lng - ((20 - 0.2) / (111.045 * Math.Cos(lat * (Math.PI) / 180)));
+
+                    if (!haveStart && LatitudeStart <= latP && LatitudeStart >= latM)
                     {
-                        var lng = Double.Parse(TrajetPoints.Split("&!&")[0]);
-                        var lat = Double.Parse(TrajetPoints.Split("&!&")[1]);
-
-
-                        if (lat <= LatitudeP && lat >= LatitudeM)
+                        if (LongitudeStart <= lngP && LongitudeStart >= lngM)
                         {
-                            if(lng <= LongitudeP && lng >= LongitudeM)
-                            {
-                                trajetFromRepo.CheckPoints.Split(",").ToList().ForEach(TrajetPoints =>
-                                {
-                                    var LatitudeStart = Double.Parse(LocationStart[0]);
-                                    var LongitudeStart = Double.Parse(LocationStart[1]);
-                                    var LatitudeEnd = Double.Parse(LocationEnd[0]);
-                                    var LongitudeEnd = Double.Parse(LocationEnd[1]);
-
-                                    var lngC = Double.Parse(TrajetPoints.Split("&!&")[1]);
-                                    var latC = Double.Parse(TrajetPoints.Split("&!&")[0]);
-
-
-                                    if (LatitudeStart <= latC + ((20 - 0.2) / 111.045) && LatitudeStart >= latC - ((20 - 0.2) / 111.045))
-                                    {
-                                        if (LongitudeStart <= lngC + (2 / (111.045 * Math.Cos(latC * (Math.PI) / 180))) && lngC >= lngC - (2 / (111.045 * Math.Cos(latC * (Math.PI) / 180))))
-                                        {
-                                            Console.WriteLine("Base :");
-                                            Console.WriteLine("Latitude :");
-                                            Console.WriteLine(LatitudeEnd);
-                                            Console.WriteLine(latC + ((20 - 0.2) / 111.045));
-                                            Console.WriteLine(latC - ((20 - 0.2) / 111.045));
-
-
-                                            Console.WriteLine("Longitude :");
-                                            Console.WriteLine(LongitudeEnd);
-                                            Console.WriteLine(lngC + (2 / (111.045 * Math.Cos(latC * (Math.PI) / 180))));
-                                            Console.WriteLine(lngC - (2 / (111.045 * Math.Cos(latC * (Math.PI) / 180))));
-                                            Console.WriteLine("");
-                                            Console.WriteLine("");
-                                        }
-                                    }
-                                });
-                                
-                                /*
-                                Console.WriteLine("Hello");
-
-                                Console.WriteLine("Latitude :");
-                                Console.WriteLine(lat);
-                                Console.WriteLine(LatitudeP);
-                                Console.WriteLine(LatitudeM);
-
-
-                                Console.WriteLine("Longitude :");
-                                Console.WriteLine(lng);
-                                Console.WriteLine(LongitudeP);
-                                Console.WriteLine(LongitudeM);
-                                */
-                            }
+                            haveStart = true;
                         }
-                    });
-
-                });
-                if (trajetsFetchFromRepo.Count() != 0)
-                {
-                    trajetsFetchFromRepo.ToList().ForEach(_ =>
+                    }
+                    if (!haveEnd && LatitudeEnd <= latP && LatitudeEnd >= latM)
                     {
-                        var result = _.CheckPoints.Trim('[', ']')
-                        .Split(",")
-                        .ToArray();
-
-
-
-                        //trajetsFromRepo = trajetsFromRepo.Concat(new Trajet[] { _ }).ToArray();
-                    });
+                        if (LongitudeEnd <= lngP && LongitudeEnd >= lngM)
+                        {
+                            haveEnd = true;
+                        }
+                    }
+                });
+                if (haveStart && haveEnd)
+                {
+                    matchingTrajet = matchingTrajet.Concat(new Trajet[] { trajetFromRepo }).ToArray();
                 }
-
             });
-
-            Trajet[] trajetsFromRepo = new Trajet[] {};
-
-            
-            return _mapper.Map<IEnumerable<TrajetDto>>(trajetsFromRepo);
+            return _mapper.Map<IEnumerable<TrajetDto>>(matchingTrajet);
         }
 
         public async Task<TrajetDetailsDto> GetTrajetDetail(Guid trajetId)
